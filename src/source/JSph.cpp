@@ -199,6 +199,18 @@ void JSph::InitVars(){
   NpMinimum=0;
   PartsOutWrn=1; PartsOutTotWrn=10;
 
+  // Init temperature -------------
+  HeatTransfer = false;
+  HeatCpFluid = 0;
+  HeatCpBound = 0;
+  HeatKFluid = 0;
+  HeatKBound = 0;
+  HeatTempBound = 0;
+  HeatTempFluid = 0;
+  MkConstTempWall = 0;
+  DensityBound = 0;
+  // ------------------------------
+
   SvData=byte(SDAT_Binx)|byte(SDAT_Info);
   SvExtraParts="";
   SvRes=false;
@@ -966,6 +978,22 @@ void JSph::LoadCaseConfig(const JSphCfgRun *cfg){
   MkInfo=new JSphMk();
   MkInfo->Config(&parts);
 
+  // Config of temperature parameters
+  TiXmlNode* tempNode = xml.GetNode("case.execution.special.temperature", false);
+  if (tempNode){
+    HeatTransfer = true;
+    MkConstTempWall = xml.ReadElementInt(tempNode->ToElement(), "boundary", "mkbound");
+    TiXmlNode* tempBoundNode = xml.GetNode("case.execution.special.temperature.boundary", false);
+    HeatCpBound = xml.ReadElementFloat(tempBoundNode, "HeatCpBound", "value");
+    HeatKBound = xml.ReadElementFloat(tempBoundNode, "HeatKBound", "value");
+    HeatTempBound = xml.ReadElementFloat(tempBoundNode, "HeatTempBound", "value");
+    DensityBound = xml.ReadElementFloat(tempBoundNode, "DensityBound", "value");
+    TiXmlNode* tempFluidNode = xml.GetNode("case.execution.special.temperature.fluid", false);	
+    HeatCpFluid = xml.ReadElementFloat(tempFluidNode, "HeatCpFluid", "value");
+    HeatKFluid = xml.ReadElementFloat(tempFluidNode, "HeatKFluid", "value");
+    HeatTempFluid = xml.ReadElementFloat(tempFluidNode, "HeatTempFluid", "value");
+  }
+
   //-Configuration of GaugeSystem.
   GaugeSystem=new JGaugeSystem(Cpu);
 
@@ -1462,6 +1490,20 @@ void JSph::ConfigConstants2(){
 //==============================================================================
 void JSph::VisuConfig(){
   const string sep=" - ";
+  // [Temperature]: log configuration variables
+  Log->Print(fun::VarStr("HeatTransfer", HeatTransfer));
+  if (HeatTransfer) {
+	  Log->Print(fun::VarStr("HeatCpFluid", HeatCpFluid));
+	  Log->Print(fun::VarStr("HeatCpBound", HeatCpBound));
+	  Log->Print(fun::VarStr("HeatKFluid", HeatKFluid));
+	  Log->Print(fun::VarStr("HeatKBound", HeatKBound));
+
+	  Log->Print(fun::VarStr("MkConstTempWall", MkConstTempWall));
+	  Log->Print(fun::VarStr("HeatTempBound", HeatTempBound));
+	  Log->Print(fun::VarStr("HeatTempFluid", HeatTempFluid));
+	  Log->Print(fun::VarStr("DensityBound", DensityBound));
+  }
+  // ------------------------------------------
   Log->Print(Simulate2D? "**2D-Simulation parameters:": "**3D-Simulation parameters:");
   Log->Print(fun::VarStr("CaseName",CaseName));
   ConfigInfo=CaseName;
@@ -2566,7 +2608,7 @@ tfloat3* JSph::GetPointerDataFloat3(unsigned n,const tdouble3* v)const{
 /// Adds basic data arrays in object JDataArrays.
 //==============================================================================
 void JSph::AddBasicArrays(JDataArrays &arrays,unsigned np,const tdouble3 *pos
-  ,const unsigned *idp,const tfloat3 *vel,const float *rhop)const
+  ,const unsigned *idp,const tfloat3 *vel,const float *rhop, double *temp)const
 {
   arrays.AddArray("Pos" ,np,pos);
   arrays.AddArray("Idp" ,np,idp);
@@ -2633,6 +2675,7 @@ void JSph::SavePartData(unsigned npok,unsigned nout,const JDataArrays& arrays
       const unsigned *idp =arrays.GetArrayUint   ("Idp");
       const tfloat3  *vel =arrays.GetArrayFloat3 ("Vel");
       const float    *rhop=arrays.GetArrayFloat  ("Rhop");
+      const double    *Temp=arrays.GetArrayDouble  ("temp");
       if(SvPosDouble || (SvExtraDataBi4 && SvExtraDataBi4->CheckSave(Part))){
         DataBi4->AddPartData(npok,idp,pos,vel,rhop);
       }
@@ -2640,6 +2683,9 @@ void JSph::SavePartData(unsigned npok,unsigned nout,const JDataArrays& arrays
         posf3=GetPointerDataFloat3(npok,pos);
         DataBi4->AddPartData(npok,idp,posf3,vel,rhop);
       }
+
+      if (Temp)DataBi4->AddPartData("Temp", npok, Temp);  // [Temperature]: add temperature data.
+      
       //-Adds other arrays.
       const string arrignore=":Pos:Idp:Vel:Rhop:";
       for(unsigned ca=0;ca<arrays.Count();ca++){

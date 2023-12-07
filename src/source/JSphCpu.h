@@ -35,11 +35,13 @@ typedef struct{
   const unsigned *dcell;
   const tdouble3 *pos;
   const tfloat4 *velrhop;
+  const double *temp;
   const unsigned *idp;
   const typecode *code;
   const float *press;
   const tfloat3 *dengradcorr;
   float* ar;
+  float *atemp;
   tfloat3 *ace;
   float *delta;
   TpShifting shiftmode;
@@ -51,20 +53,20 @@ typedef struct{
 ///Collects parameters for particle interaction on CPU.
 inline stinterparmsc StInterparmsc(unsigned np,unsigned npb,unsigned npbok
   ,StDivDataCpu divdata,const unsigned *dcell
-  ,const tdouble3 *pos,const tfloat4 *velrhop,const unsigned *idp,const typecode *code
+  ,const tdouble3 *pos,const tfloat4 *velrhop, const double* temp, const unsigned *idp,const typecode *code
   ,const float *press
   ,const tfloat3 *dengradcorr
-  ,float* ar,tfloat3 *ace,float *delta
+  ,float* ar, float* atemp, tfloat3 *ace,float *delta
   ,TpShifting shiftmode,tfloat4 *shiftposfs
   ,tsymatrix3f *spstau,tsymatrix3f *spsgradvel
 )
 {
   stinterparmsc d={np,npb,npbok,(np-npb)
     ,divdata,dcell
-    ,pos,velrhop,idp,code
+    ,pos,velrhop, temp, idp,code
     ,press
     ,dengradcorr
-    ,ar,ace,delta
+    ,ar, atemp, ace,delta
     ,shiftmode,shiftposfs
     ,spstau,spsgradvel
   };
@@ -125,16 +127,19 @@ protected:
   unsigned *Dcellc;  ///<Cells inside DomCells coded with DomCellCode. | Celda dentro de DomCells codificada con DomCellCode.
   tdouble3 *Posc;
   tfloat4 *Velrhopc;
+  double *Tempc; ///< Temperature for each particle
 
   tfloat3 *BoundNormalc;  ///<Normal (x,y,z) pointing from boundary particles to ghost nodes.
   tfloat3 *MotionVelc;    ///<Velocity of a moving boundary particle.
     
   //-Variables for compute step: VERLET. | Vars. para compute step: VERLET.
   tfloat4 *VelrhopM1c;  ///<Verlet: in order to keep previous values. | Verlet: para guardar valores anteriores.
+  double *TempM1c; ///< Array to keep previous values for Verlet
 
   //-Variables for compute step: SYMPLECTIC. | Vars. para compute step: SYMPLECTIC.
   tdouble3 *PosPrec;    ///<Sympletic: in order to keep previous values. | Sympletic: para guardar valores en predictor.
   tfloat4 *VelrhopPrec;
+  double *TempPrec; ///< Array to keep previous values for Sympletic
 
   //-Variables for floating bodies.
   unsigned *FtRidp;             ///<Identifier to access to the particles of the floating object [CaseNfloat].
@@ -144,6 +149,7 @@ protected:
   //-Variables for computation of forces | Vars. para computo de fuerzas.
   tfloat3 *Acec;         ///<Sum of interaction forces | Acumula fuerzas de interaccion
   float *Arc; 
+  float *Atempc; ///< Temperature derivative
   float *Deltac;         ///<Adjusted sum with Delta-SPH with DELTA_DynamicExt | Acumula ajuste de Delta-SPH con DELTA_DynamicExt
 
   tfloat4 *ShiftPosfsc;    ///<Particle displacement and free surface detection for Shifting.
@@ -198,7 +204,7 @@ protected:
   void PrintAllocMemory(llong mcpu)const;
 
   unsigned GetParticlesData(unsigned n,unsigned pini,bool onlynormal
-    ,unsigned *idp,tdouble3 *pos,tfloat3 *vel,float *rhop,typecode *code);
+    ,unsigned *idp,tdouble3 *pos,tfloat3 *vel,float *rhop, double *temp, typecode *code);
   void ConfigOmp(const JSphCfgRun *cfg);
 
   void ConfigRunMode();
@@ -215,17 +221,20 @@ protected:
 
   template<TpKernel tker,TpFtMode ftmode> void InteractionForcesBound
     (unsigned n,unsigned pini,StDivDataCpu divdata,const unsigned *dcell
-    ,const tdouble3 *pos,const tfloat4 *velrhop,const typecode *code,const unsigned *id
-    ,float &viscdt,float *ar)const;
+    ,const tdouble3 *pos,const tfloat4 *velrhop, const double *temp, const typecode *code,const unsigned *id
+    ,float &viscdt,float *ar, float *atemp)const;
 
   template<TpKernel tker,TpFtMode ftmode,TpVisco tvisco,TpDensity tdensity,bool shift> 
     void InteractionForcesFluid(unsigned n,unsigned pini,bool boundp2,float visco
     ,StDivDataCpu divdata,const unsigned *dcell
-    ,const tsymatrix3f* tau,tsymatrix3f* gradvel
-    ,const tdouble3 *pos,const tfloat4 *velrhop,const typecode *code,const unsigned *idp
-    ,const float *press,const tfloat3 *dengradcorr
-    ,float &viscdt,float *ar,tfloat3 *ace,float *delta
-    ,TpShifting shiftmode,tfloat4 *shiftposfs)const;
+  ,const tsymatrix3f* tau,tsymatrix3f* gradvel
+  ,const tdouble3 *pos,const tfloat4 *velrhop
+  ,const double *temp // ######
+  ,const typecode *code,const unsigned *idp
+  ,const float *press,const tfloat3 *dengradcorr
+  ,float &viscdt,float *ar,  float* atemp, tfloat3 *ace, float *delta //######
+  ,TpShifting shiftmode,tfloat4 *shiftposfs)const;
+
 
   void InteractionForcesDEM(unsigned nfloat,StDivDataCpu divdata,const unsigned *dcell
     ,const unsigned *ftridp,const StDemData* demobjs
@@ -253,8 +262,8 @@ protected:
 
   void ComputeSpsTau(unsigned n,unsigned pini,const tfloat4 *velrhop,const tsymatrix3f *gradvel,tsymatrix3f *tau)const;
 
-  void ComputeVerletVarsFluid(bool shift,const tfloat3 *indirvel,const tfloat4 *velrhop1,const tfloat4 *velrhop2,double dt,double dt2,tdouble3 *pos,unsigned *cell,typecode *code,tfloat4 *velrhopnew)const;
-  void ComputeVelrhopBound(const tfloat4* velrhopold,double armul,tfloat4* velrhopnew)const;
+  void ComputeVerletVarsFluid(bool shift,const tfloat3 *indirvel,const tfloat4 *velrhop1,const tfloat4 *velrhop2, const double *tempp2, double dt,double dt2,tdouble3 *pos,unsigned *cell,typecode *code,tfloat4 *velrhopnew, double *tempnew)const;
+  void ComputeVelrhopBound(const tfloat4* velrhopold, const double* tempold, double armul,tfloat4* velrhopnew, double* tempnew)const;
   void ComputeVerlet(double dt);
 
   void ComputeSymplecticPre(double dt);

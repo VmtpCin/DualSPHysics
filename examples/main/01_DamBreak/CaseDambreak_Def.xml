@@ -61,6 +61,21 @@
         </geometry>
     </casedef>
     <execution>
+    		<special>
+			<temperature>
+				<boundary mkbound="0">
+					<HeatKBound value="202.4" comment="Thermal conductivity of boundary particles (default 54 for carbon steel at 293K)" units_comment="W/(m*K)" />
+					<HeatCpBound value="871" comment="Specific heat capacity of boundary particles (default 465 for steel at 293K)" units_comment="J/(kg*K)" />
+					<HeatTempBound value="363" comment="Temperature of boundary particles" units_comment="K"/>
+					<DensityBound value="2719" comment="Density of boundary particles" units_comment="Kg/m^3"/>
+				</boundary>
+				<fluid>
+					<HeatKFluid value="0.6" comment="Thermal conductivity of fluid particles(default 0.6 for water at 293K)" units_comment="W/(m*K)" />
+					<HeatCpFluid value="4182" comment="Specific heat capacity of fluid particles (default 4.18 for water 293K)" units_comment="J/(kg*K)" />
+					<HeatTempFluid value="293" comment="Temperature of fluid particles" units_comment="K"/>
+				</fluid>
+			</temperature>
+		</special>
         <parameters>
             <parameter key="SavePosDouble" value="0" comment="Saves particle position using double precision (default=0)" />			
             <parameter key="StepAlgorithm" value="1" comment="Step Algorithm 1:Verlet, 2:Symplectic (default=1)" />

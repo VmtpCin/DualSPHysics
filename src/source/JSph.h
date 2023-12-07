@@ -148,6 +148,19 @@ private:
   void ConfigDomainResize(std::string key,const JCaseEParms *eparms);
 
 protected:
+
+  // Temperature configuration variables -------------------------------------
+  bool HeatTransfer; ////< enable heat transfer
+  float HeatCpFluid; ////< Specific heat capacity of fluid
+  float HeatCpBound; ////< Specific heat capacity of bound
+  float HeatKFluid; ////< THermal conductivity of fluid
+  float HeatKBound; ////< Thermal conductivity of bound
+  float HeatTempBound; ////< Temperature of bound K
+  float HeatTempFluid; ////< Temparature of Fluid K
+  float DensityBound; ////< density of bound Kg/m3
+  unsigned MkConstTempWall; ////< Mk of the constant temparature wall boundary
+  // ------------------------------------------------------------------------
+
   const bool Cpu;
   const bool Mgpu;
   const bool WithMpi;
@@ -487,7 +500,7 @@ protected:
 
   tfloat3* GetPointerDataFloat3(unsigned n,const tdouble3* v)const;
   void AddBasicArrays(JDataArrays &arrays,unsigned np,const tdouble3 *pos
-    ,const unsigned *idp,const tfloat3 *vel,const float *rhop)const;
+    ,const unsigned *idp,const tfloat3 *vel,const float *rhop, double *temp)const;
   void SavePartData(unsigned npok,unsigned nout,const JDataArrays& arrays,unsigned ndom,const tdouble3 *vdom,const StInfoPartPlus *infoplus);
   void SaveData(unsigned npok,const JDataArrays& arrays,unsigned ndom,const tdouble3 *vdom,const StInfoPartPlus *infoplus);
 
