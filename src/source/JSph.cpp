@@ -2614,6 +2614,7 @@ void JSph::AddBasicArrays(JDataArrays &arrays,unsigned np,const tdouble3 *pos
   arrays.AddArray("Idp" ,np,idp);
   arrays.AddArray("Vel" ,np,vel);
   arrays.AddArray("Rhop",np,rhop);
+  arrays.AddArray("Temp",np, temp);
 }
 
 //==============================================================================
@@ -2675,7 +2676,7 @@ void JSph::SavePartData(unsigned npok,unsigned nout,const JDataArrays& arrays
       const unsigned *idp =arrays.GetArrayUint   ("Idp");
       const tfloat3  *vel =arrays.GetArrayFloat3 ("Vel");
       const float    *rhop=arrays.GetArrayFloat  ("Rhop");
-      const double    *Temp=arrays.GetArrayDouble  ("temp");
+      const double    *Temp=arrays.GetArrayDouble  ("Temp");
       if(SvPosDouble || (SvExtraDataBi4 && SvExtraDataBi4->CheckSave(Part))){
         DataBi4->AddPartData(npok,idp,pos,vel,rhop);
       }
