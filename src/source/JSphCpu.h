@@ -128,6 +128,7 @@ protected:
   tdouble3 *Posc;
   tfloat4 *Velrhopc;
   double *Tempc; ///< Temperature for each particle
+  double *LeonardJonesc; ///< LJLJLJLJ
 
   tfloat3 *BoundNormalc;  ///<Normal (x,y,z) pointing from boundary particles to ghost nodes.
   tfloat3 *MotionVelc;    ///<Velocity of a moving boundary particle.
@@ -135,11 +136,13 @@ protected:
   //-Variables for compute step: VERLET. | Vars. para compute step: VERLET.
   tfloat4 *VelrhopM1c;  ///<Verlet: in order to keep previous values. | Verlet: para guardar valores anteriores.
   double *TempM1c; ///< Array to keep previous values for Verlet
+  double *LeonardJonesM1c; ///< LJLJLJLJ
 
   //-Variables for compute step: SYMPLECTIC. | Vars. para compute step: SYMPLECTIC.
   tdouble3 *PosPrec;    ///<Sympletic: in order to keep previous values. | Sympletic: para guardar valores en predictor.
   tfloat4 *VelrhopPrec;
   double *TempPrec; ///< Array to keep previous values for Sympletic
+  double *LeonardJonesPrec; ///< LJLJLJLJ
 
   //-Variables for floating bodies.
   unsigned *FtRidp;             ///<Identifier to access to the particles of the floating object [CaseNfloat].
@@ -150,6 +153,7 @@ protected:
   tfloat3 *Acec;         ///<Sum of interaction forces | Acumula fuerzas de interaccion
   float *Arc; 
   float *Atempc; ///< Temperature derivative
+  float *Aleonardjonesc; ///< LJLJLJLJ
   float *Deltac;         ///<Adjusted sum with Delta-SPH with DELTA_DynamicExt | Acumula ajuste de Delta-SPH con DELTA_DynamicExt
 
   tfloat4 *ShiftPosfsc;    ///<Particle displacement and free surface detection for Shifting.
@@ -204,7 +208,7 @@ protected:
   void PrintAllocMemory(llong mcpu)const;
 
   unsigned GetParticlesData(unsigned n,unsigned pini,bool onlynormal
-    ,unsigned *idp,tdouble3 *pos,tfloat3 *vel,float *rhop, double *temp, typecode *code);
+    ,unsigned *idp,tdouble3 *pos,tfloat3 *vel,float *rhop, double *temp, double *leonardjones, typecode *code);
   void ConfigOmp(const JSphCfgRun *cfg);
 
   void ConfigRunMode();
@@ -230,9 +234,10 @@ protected:
   ,const tsymatrix3f* tau,tsymatrix3f* gradvel
   ,const tdouble3 *pos,const tfloat4 *velrhop
   ,const double *temp // ######
+  ,const double *leonardjones // LJLJLJLJ
   ,const typecode *code,const unsigned *idp
   ,const float *press,const tfloat3 *dengradcorr
-  ,float &viscdt,float *ar,  float* atemp, tfloat3 *ace, float *delta //######
+  ,float &viscdt,float *ar,  float* atemp, float* aleonardjones, tfloat3 *ace, float *delta //###### LJLJLJLJ
   ,TpShifting shiftmode,tfloat4 *shiftposfs)const;
 
 

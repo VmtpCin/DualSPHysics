@@ -133,6 +133,9 @@ void JSphCpuSingle::ConfigDomain(){
 	  }
   }
   //==================================================
+  for (unsigned p = 0; p<Np; p++) 
+    LeonardJonesc[p] = LJFLuid; // LJLJLJLJ
+
 
   //-Computes radius of floating bodies.
   if(CaseNfloat && PeriActive!=0 && !PartBegin)CalcFloatingRadius(Np,Posc,Idpc);
@@ -467,15 +470,18 @@ void JSphCpuSingle::RunCellDivide(bool updateperiodic){
   CellDivSingle->SortArray(Posc);
   CellDivSingle->SortArray(Velrhopc);
   CellDivSingle->SortArray(Tempc);
+  CellDivSingle->SortArray(LeonardJonesc); // LJLJLJLJ
   if(TStep==STEP_Verlet){
     CellDivSingle->SortArray(VelrhopM1c);
     CellDivSingle->SortArray(TempM1c);
+    CellDivSingle->SortArray(LeonardJonesM1c); // LJLJLJLJ
   }
   else if(TStep==STEP_Symplectic && (PosPrec || VelrhopPrec)){//-In reality, this is only necessary in divide for corrector, not in predictor??? | En realidad solo es necesario en el divide del corrector, no en el predictor???
     if(!PosPrec || !VelrhopPrec)Run_Exceptioon("Symplectic data is invalid.") ;
     CellDivSingle->SortArray(PosPrec);
     CellDivSingle->SortArray(VelrhopPrec);
     CellDivSingle->SortArray(TempPrec);
+    CellDivSingle->SortArray(LeonardJonesPrec); // LJLJLJLJ
   }
   if(TVisco==VISCO_LaminarSPS)CellDivSingle->SortArray(SpsTauc);
   if(UseNormals){
@@ -505,8 +511,9 @@ void JSphCpuSingle::RunCellDivide(bool updateperiodic){
     tfloat3* vel=ArraysCpu->ReserveFloat3();
     float* rhop=ArraysCpu->ReserveFloat();
     double* temp=ArraysCpu->ReserveDouble();
+    double* leonardjones=ArraysCpu->ReserveDouble(); // LJLJLJLJ
     typecode* code=ArraysCpu->ReserveTypeCode();
-    unsigned num=GetParticlesData(npfout,Np,false,idp,pos,vel,rhop, temp, code);
+    unsigned num=GetParticlesData(npfout,Np,false,idp,pos,vel,rhop, temp, leonardjones, code);
     AddParticlesOut(npfout,idp,pos,vel,rhop,code);
     ArraysCpu->Free(idp);
     ArraysCpu->Free(pos);
@@ -530,8 +537,9 @@ void JSphCpuSingle::AbortBoundOut(){
   tfloat3* vel=ArraysCpu->ReserveFloat3();
   float* rhop=ArraysCpu->ReserveFloat();
   double* temp=ArraysCpu->ReserveDouble();
+  double* leonardjones=ArraysCpu->ReserveDouble(); // LJLJLJLJ
   typecode* code=ArraysCpu->ReserveTypeCode();
-  GetParticlesData(nboundout,Np,false,idp,pos,vel,rhop, temp, code);
+  GetParticlesData(nboundout,Np,false,idp,pos,vel,rhop, temp, leonardjones, code);
   //-Shows excluded particles information and aborts execution.
   JSph::AbortBoundOut(Log,nboundout,idp,pos,vel,rhop,code);
 }
@@ -1158,6 +1166,7 @@ void JSphCpuSingle::SaveData(){
   tfloat3 *vel=NULL;
   float *rhop=NULL;
   double* temp=NULL;
+  double* leonardjones=NULL; //LJLJLJLJ
   if(save){
     //-Assign memory and collect particle values. | Asigna memoria y recupera datos de las particulas.
     idp=ArraysCpu->ReserveUint();
@@ -1165,7 +1174,8 @@ void JSphCpuSingle::SaveData(){
     vel=ArraysCpu->ReserveFloat3();
     rhop=ArraysCpu->ReserveFloat();
     temp=ArraysCpu->ReserveDouble();
-    unsigned npnormal=GetParticlesData(Np,0,PeriActive!=0,idp,pos,vel,rhop, temp, NULL);
+    leonardjones=ArraysCpu->ReserveDouble(); // LJLJLJLJ
+    unsigned npnormal=GetParticlesData(Np,0,PeriActive!=0,idp,pos,vel,rhop, temp, leonardjones, NULL);
     if(npnormal!=npsave)Run_Exceptioon("The number of particles is invalid.");
   }
   //-Gather additional information. | Reune informacion adicional.

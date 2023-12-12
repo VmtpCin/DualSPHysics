@@ -211,6 +211,14 @@ void JSph::InitVars(){
   DensityBound = 0;
   // ------------------------------
 
+  // Init Leonard-Jones ------------------------------------------------------
+  bool LeonardJones;
+  float c1;
+  float c2;
+  float rc;
+  float rij;
+  //---------------------------------------------------------------------------
+
   SvData=byte(SDAT_Binx)|byte(SDAT_Info);
   SvExtraParts="";
   SvRes=false;
@@ -994,6 +1002,18 @@ void JSph::LoadCaseConfig(const JSphCfgRun *cfg){
     HeatTempFluid = xml.ReadElementFloat(tempFluidNode, "HeatTempFluid", "value");
   }
 
+  // Config of temperature parameters
+  TiXmlNode* tempNode2 = xml.GetNode("case.execution.special.Leonard-Jones", false);
+  if (tempNode2){
+    LeonardJones = true;
+    TiXmlNode* tempFluidNode = xml.GetNode("case.execution.special.Leonard-Jones.fluid", false);	
+    c1 = xml.ReadElementFloat(tempFluidNode, "c1", "value");
+    c2 = xml.ReadElementFloat(tempFluidNode, "c2", "value");
+    rc = xml.ReadElementFloat(tempFluidNode, "rc", "value");
+    rij = xml.ReadElementFloat(tempFluidNode, "rij", "value");
+    LJFLuid =  xml.ReadElementFloat(tempFluidNode, "LJFLuid", "value");
+  }
+
   //-Configuration of GaugeSystem.
   GaugeSystem=new JGaugeSystem(Cpu);
 
@@ -1504,6 +1524,17 @@ void JSph::VisuConfig(){
 	  Log->Print(fun::VarStr("DensityBound", DensityBound));
   }
   // ------------------------------------------
+  // [Leonard-Jones]: log configuration variables
+  Log->Print(fun::VarStr("Leonard-Jones", LeonardJones));
+  if (LeonardJones) {
+	  Log->Print(fun::VarStr("c1", c1));
+	  Log->Print(fun::VarStr("c2", c2));
+	  Log->Print(fun::VarStr("rc", rc));
+	  Log->Print(fun::VarStr("rij", rij));
+    Log->Print(fun::VarStr("LJFluid", LJFLuid));
+  }
+  // ------------------------------------------
+  
   Log->Print(Simulate2D? "**2D-Simulation parameters:": "**3D-Simulation parameters:");
   Log->Print(fun::VarStr("CaseName",CaseName));
   ConfigInfo=CaseName;

@@ -103,6 +103,11 @@ void JSphCpu::InitVars(){
   Atempc = NULL;
   //==================================================
 
+  LeonardJonesc = NULL; // LJLJLJLJ
+  LeonardJonesM1c = NULL; // LJLJLJLJ
+  LeonardJonesPrec = NULL; // LJLJLJLJ
+  Aleonardjonesc = NULL; // LJLJLJLJ
+
 
   FreeCpuMemoryParticles();
   FreeCpuMemoryFixed();
@@ -179,16 +184,20 @@ void JSphCpu::AllocCpuMemoryParticles(unsigned np,float over){
   ArraysCpu->AddArrayCount(JArraysCpu::SIZE_8B, 2); // Tempc
   ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // Atempc
   //========================================================
+  ArraysCpu->AddArrayCount(JArraysCpu::SIZE_8B, 2); // LeonardJonesC LJLJLJLJ
+  ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // Aleonardjonesc LJLJLJLJ
 
   ArraysCpu->AddArrayCount(JArraysCpu::SIZE_24B,2); //-pos
   if(TStep==STEP_Verlet){
     ArraysCpu->AddArrayCount(JArraysCpu::SIZE_16B,1); //-velrhopm1
     ArraysCpu->AddArrayCount(JArraysCpu::SIZE_8B, 1); // [Temperature]: TempM1
+    ArraysCpu->AddArrayCount(JArraysCpu::SIZE_8B, 1); // LeonardJonesM1c LJLJLJLJ
   }
   else if(TStep==STEP_Symplectic){
     ArraysCpu->AddArrayCount(JArraysCpu::SIZE_24B,1); //-pospre
     ArraysCpu->AddArrayCount(JArraysCpu::SIZE_16B,1); //-velrhoppre
     ArraysCpu->AddArrayCount(JArraysCpu::SIZE_8B, 1); // TempPrec
+    ArraysCpu->AddArrayCount(JArraysCpu::SIZE_8B, 1); // LeonardJonesPrec LJLJLJLJ
   }
   if(TVisco==VISCO_LaminarSPS){     
     ArraysCpu->AddArrayCount(JArraysCpu::SIZE_24B,2); //-SpsTau,SpsGradvel
@@ -307,9 +316,11 @@ void JSphCpu::ReserveBasicArraysCpu(){
   Posc=ArraysCpu->ReserveDouble3();
   Velrhopc=ArraysCpu->ReserveFloat4();
   Tempc = ArraysCpu->ReserveDouble();
+  LeonardJonesc = ArraysCpu->ReserveDouble(); // LJLJLJLJ
   if(TStep==STEP_Verlet){
     VelrhopM1c=ArraysCpu->ReserveFloat4();
     TempM1c = ArraysCpu->ReserveDouble();
+    LeonardJonesM1c = ArraysCpu->ReserveDouble(); // LJLJLJLJ
     }
   if(TVisco==VISCO_LaminarSPS)SpsTauc=ArraysCpu->ReserveSymatrix3f();
   if(UseNormals){
@@ -351,7 +362,7 @@ void JSphCpu::PrintAllocMemory(llong mcpu)const{
 /// - onlynormal: Solo se queda con las normales, elimina las particulas periodicas.
 //==============================================================================
 unsigned JSphCpu::GetParticlesData(unsigned n,unsigned pini,bool onlynormal
-  ,unsigned *idp,tdouble3 *pos,tfloat3 *vel,float *rhop, double *temp, typecode *code)
+  ,unsigned *idp,tdouble3 *pos,tfloat3 *vel,float *rhop, double *temp, double* leonardjones, typecode *code)
 {
   unsigned num=n;
   //-Copy selected values.
@@ -371,7 +382,7 @@ unsigned JSphCpu::GetParticlesData(unsigned n,unsigned pini,bool onlynormal
   }
 
   if(temp)memcpy(temp, Tempc + pini, sizeof(double)*n); ///< copy values from Tempc
-
+  if(leonardjones)memcpy(leonardjones, LeonardJonesc + pini, sizeof(double)*n); // LJLJLJLJ
   //-Eliminate non-normal particles (periodic & others). | Elimina particulas no normales (periodicas y otras).
   if(onlynormal){
     if(!idp || !pos || !vel || !rhop)Run_Exceptioon("Pointers without data.");
@@ -390,6 +401,7 @@ unsigned JSphCpu::GetParticlesData(unsigned n,unsigned pini,bool onlynormal
         vel[pdel]  =vel[p];
         rhop[pdel] =rhop[p];
         temp[pdel] =temp[p];
+        leonardjones[pdel] = leonardjones[p]; // LJLJLJLJ
         code2[pdel]=code2[p];
       }
       if(!normal)ndel++;
@@ -451,6 +463,7 @@ void JSphCpu::InitRunCpu(){
   if(TStep==STEP_Verlet){
     memcpy(VelrhopM1c,Velrhopc,sizeof(tfloat4)*Np);
     memcpy(TempM1c,Tempc,sizeof(double)*Np); // Copy TempM1c and Temp
+    memcpy(LeonardJonesM1c,LeonardJonesc,sizeof(double)*Np); // LJLJLJLJ
     }
   if(TVisco==VISCO_LaminarSPS)memset(SpsTauc,0,sizeof(tsymatrix3f)*Np);
   if(CaseNfloat)InitFloating();
@@ -469,6 +482,7 @@ void JSphCpu::PreInteractionVars_Forces(unsigned np,unsigned npb){
   memset(Acec,0,sizeof(tfloat3)*np);                                 //Acec[]=(0,0,0)
   if(SpsGradvelc)memset(SpsGradvelc+npb,0,sizeof(tsymatrix3f)*npf);  //SpsGradvelc[]=(0,0,0,0,0,0).
   memset(Atempc, 0, sizeof(float)*np); /// ######
+  memset(Aleonardjonesc, 0, sizeof(float)*np);
 
   //-Select particles for shifting.
   if(ShiftPosfsc)Shifting->InitCpu(npf,npb,Posc,ShiftPosfsc);
@@ -496,6 +510,7 @@ void JSphCpu::PreInteraction_Forces(){
   Arc=ArraysCpu->ReserveFloat();
   Acec=ArraysCpu->ReserveFloat3();
   Atempc=ArraysCpu->ReserveFloat(); //< reserve memory for Atemp
+  Aleonardjonesc=ArraysCpu->ReserveFloat(); // LJLJLJLJ
   if(DDTArray)Deltac=ArraysCpu->ReserveFloat();
   if(Shifting)ShiftPosfsc=ArraysCpu->ReserveFloat4();
   Pressc=ArraysCpu->ReserveFloat();
@@ -682,9 +697,10 @@ template<TpKernel tker,TpFtMode ftmode,TpVisco tvisco,TpDensity tdensity,bool sh
   ,const tsymatrix3f* tau,tsymatrix3f* gradvel
   ,const tdouble3 *pos,const tfloat4 *velrhop
   ,const double *temp //  ######
+  ,const double *leonardjones // LJLJLJLJ
   ,const typecode *code,const unsigned *idp
   ,const float *press,const tfloat3 *dengradcorr
-  ,float &viscdt,float *ar, float *atemp, tfloat3 *ace, float *delta // ######
+  ,float &viscdt,float *ar, float *atemp, float *aleonardjones, tfloat3 *ace, float *delta // ###### LJLJLJLJ
   ,TpShifting shiftmode,tfloat4 *shiftposfs)const
 {
   //-Initialize viscth to calculate viscdt maximo con OpenMP. | Inicializa viscth para calcular visdt maximo con OpenMP.
@@ -698,6 +714,7 @@ template<TpKernel tker,TpFtMode ftmode,TpVisco tvisco,TpDensity tdensity,bool sh
   for(int p1=int(pinit);p1<pfin;p1++){
     float visc=0,arp1=0,deltap1=0;
     float atempp1 = 0; //######
+    float aleonardjoness1 = 0; // LJLJLJLJ
     tfloat3 acep1=TFloat3(0);
     tsymatrix3f gradvelp1={0,0,0,0,0,0};
 
@@ -718,6 +735,7 @@ template<TpKernel tker,TpFtMode ftmode,TpVisco tvisco,TpDensity tdensity,bool sh
     const tfloat3 velp1=TFloat3(velrhop[p1].x,velrhop[p1].y,velrhop[p1].z);
     const float rhopp1=velrhop[p1].w;
     const double tempp1 = temp[p1]; //######
+    const double leonardjoness1 = leonardjones[p1];
     const float pressp1=press[p1];
     const tsymatrix3f taup1=(tvisco==VISCO_Artificial? gradvelp1: tau[p1]);
     const bool rsymp1=(Symmetry && posp1.y<=KernelSize); //<vs_syymmetry>
@@ -803,6 +821,12 @@ template<TpKernel tker,TpFtMode ftmode,TpVisco tvisco,TpDensity tdensity,bool sh
 			      atempp1 += float(tempConst*dtemp*fac);
 			      }
 			    //==================================================
+
+          // Compute Leonard Jones derivative
+          if (compute){
+
+            aleonardjoness1 += 
+          }
           
           //-Shifting correction.
           if(shift && shiftposfsp1.x!=FLT_MAX){

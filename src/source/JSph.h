@@ -161,6 +161,15 @@ protected:
   unsigned MkConstTempWall; ////< Mk of the constant temparature wall boundary
   // ------------------------------------------------------------------------
 
+  // Leonard-Jones config variables ------------------------------------------
+  bool LeonardJones;
+  float LJFLuid;
+  float c1;
+  float c2;
+  float rc;
+  float rij;
+  //---------------------------------------------------------------------------
+
   const bool Cpu;
   const bool Mgpu;
   const bool WithMpi;
