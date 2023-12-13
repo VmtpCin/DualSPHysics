@@ -36,12 +36,14 @@ typedef struct{
   const tdouble3 *pos;
   const tfloat4 *velrhop;
   const double *temp;
+  const double *leonardjones; // LJLJLJLJ
   const unsigned *idp;
   const typecode *code;
   const float *press;
   const tfloat3 *dengradcorr;
   float* ar;
   float *atemp;
+  float *aleonardjones; //LJLJLJLJ
   tfloat3 *ace;
   float *delta;
   TpShifting shiftmode;
@@ -53,20 +55,20 @@ typedef struct{
 ///Collects parameters for particle interaction on CPU.
 inline stinterparmsc StInterparmsc(unsigned np,unsigned npb,unsigned npbok
   ,StDivDataCpu divdata,const unsigned *dcell
-  ,const tdouble3 *pos,const tfloat4 *velrhop, const double* temp, const unsigned *idp,const typecode *code
+  ,const tdouble3 *pos,const tfloat4 *velrhop, const double* temp, const double* leonardjones, const unsigned *idp,const typecode *code //LJLJLJLJ
   ,const float *press
   ,const tfloat3 *dengradcorr
-  ,float* ar, float* atemp, tfloat3 *ace,float *delta
+  ,float* ar, float* atemp, float *aleonardjones,  tfloat3 *ace,float *delta // LJLJLJLJ
   ,TpShifting shiftmode,tfloat4 *shiftposfs
   ,tsymatrix3f *spstau,tsymatrix3f *spsgradvel
 )
 {
   stinterparmsc d={np,npb,npbok,(np-npb)
     ,divdata,dcell
-    ,pos,velrhop, temp, idp,code
+    ,pos,velrhop, temp, leonardjones, idp,code
     ,press
     ,dengradcorr
-    ,ar, atemp, ace,delta
+    ,ar, atemp, aleonardjones, ace,delta
     ,shiftmode,shiftposfs
     ,spstau,spsgradvel
   };
@@ -225,8 +227,8 @@ protected:
 
   template<TpKernel tker,TpFtMode ftmode> void InteractionForcesBound
     (unsigned n,unsigned pini,StDivDataCpu divdata,const unsigned *dcell
-    ,const tdouble3 *pos,const tfloat4 *velrhop, const double *temp, const typecode *code,const unsigned *id
-    ,float &viscdt,float *ar, float *atemp)const;
+    ,const tdouble3 *pos,const tfloat4 *velrhop, const double *temp, const double *leonardjones, const typecode *code,const unsigned *id
+    ,float &viscdt,float *ar, float *atemp, float *aleonardjones)const; // LJLJLJLJLJ
 
   template<TpKernel tker,TpFtMode ftmode,TpVisco tvisco,TpDensity tdensity,bool shift> 
     void InteractionForcesFluid(unsigned n,unsigned pini,bool boundp2,float visco
@@ -267,8 +269,8 @@ protected:
 
   void ComputeSpsTau(unsigned n,unsigned pini,const tfloat4 *velrhop,const tsymatrix3f *gradvel,tsymatrix3f *tau)const;
 
-  void ComputeVerletVarsFluid(bool shift,const tfloat3 *indirvel,const tfloat4 *velrhop1,const tfloat4 *velrhop2, const double *tempp2, double dt,double dt2,tdouble3 *pos,unsigned *cell,typecode *code,tfloat4 *velrhopnew, double *tempnew)const;
-  void ComputeVelrhopBound(const tfloat4* velrhopold, const double* tempold, double armul,tfloat4* velrhopnew, double* tempnew)const;
+  void ComputeVerletVarsFluid(bool shift,const tfloat3 *indirvel,const tfloat4 *velrhop1,const tfloat4 *velrhop2, const double *tempp2, const double *leonardjoness2, double dt,double dt2,tdouble3 *pos,unsigned *cell,typecode *code,tfloat4 *velrhopnew, double *tempnew, double *leonardjonesnew)const; //LJLJLJLJ
+  void ComputeVelrhopBound(const tfloat4* velrhopold, const double* tempold, const double* leonardjonesold, double armul,tfloat4* velrhopnew, double* tempnew, double* leonardjonesnew)const; //LJLJLJLJ
   void ComputeVerlet(double dt);
 
   void ComputeSymplecticPre(double dt);

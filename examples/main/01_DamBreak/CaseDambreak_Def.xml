@@ -75,6 +75,15 @@
 					<HeatTempFluid value="293" comment="Temperature of fluid particles" units_comment="K"/>
 				</fluid>
 			</temperature>
+			<Leonard-Jones>
+				<fluid>
+					<c1 value="1"/>
+					<c2 value="1"/>
+					<rij value="1"/>
+					<rc value="1"/>
+					<LJFluid value="1"/>
+				</fluid>
+			</Leonard-Jones>
 		</special>
         <parameters>
             <parameter key="SavePosDouble" value="0" comment="Saves particle position using double precision (default=0)" />			
@@ -97,7 +106,7 @@
             <parameter key="DtFixed" value="0" comment="Fixed Dt value. Use 0 to disable (default=disabled)" units_comment="seconds" />
             <parameter key="DtFixedFile" value="NONE" comment="Dt values are loaded from file. Use NONE to disable (default=disabled)" units_comment="milliseconds (ms)" />
             <parameter key="DtAllParticles" value="0" comment="Velocity of particles used to calculate DT. 1:All, 0:Only fluid/floating (default=0)" />
-            <parameter key="TimeMax" value="1.6" comment="Time of simulation" units_comment="seconds" />
+            <parameter key="TimeMax" value="0.5" comment="Time of simulation" units_comment="seconds" />
             <parameter key="TimeOut" value="0.01" comment="Time out data" units_comment="seconds" />
             <parameter key="PartsOutMax" value="1" comment="%/100 of fluid particles allowed to be excluded from domain (default=1)" units_comment="decimal" />
             <parameter key="RhopOutMin" value="700" comment="Minimum rhop valid (default=700)" units_comment="kg/m^3" />

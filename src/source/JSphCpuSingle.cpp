@@ -558,8 +558,8 @@ void JSphCpuSingle::Interaction_Forces(TpInterStep interstep){
   //-Interaction of Fluid-Fluid/Bound & Bound-Fluid (forces and DEM). | Interaccion Fluid-Fluid/Bound & Bound-Fluid (forces and DEM).
   const stinterparmsc parms=StInterparmsc(Np,Npb,NpbOk
     ,DivData,Dcellc
-    ,Posc,Velrhopc, Tempc, Idpc,Codec,Pressc,dengradcorr
-    ,Arc, Atempc, Acec,Deltac
+    ,Posc,Velrhopc, Tempc, LeonardJonesc, Idpc,Codec,Pressc,dengradcorr
+    ,Arc, Atempc, Aleonardjonesc, Acec,Deltac
     ,ShiftingMode,ShiftPosfsc
     ,SpsTauc,SpsGradvelc
   );
@@ -1175,7 +1175,7 @@ void JSphCpuSingle::SaveData(){
     rhop=ArraysCpu->ReserveFloat();
     temp=ArraysCpu->ReserveDouble();
     leonardjones=ArraysCpu->ReserveDouble(); // LJLJLJLJ
-    unsigned npnormal=GetParticlesData(Np,0,PeriActive!=0,idp,pos,vel,rhop, temp, leonardjones, NULL);
+    unsigned npnormal=GetParticlesData(Np,0,PeriActive!=0,idp,pos,vel,rhop, temp, leonardjones, NULL); // LJLJLJLJ
     if(npnormal!=npsave)Run_Exceptioon("The number of particles is invalid.");
   }
   //-Gather additional information. | Reune informacion adicional.
@@ -1206,6 +1206,7 @@ void JSphCpuSingle::SaveData(){
   ArraysCpu->Free(vel);
   ArraysCpu->Free(rhop);
   ArraysCpu->Free(temp);
+  ArraysCpu->Free(leonardjones); // LJLJLJLJ
   if(UseNormals && SvNormals)SaveVtkNormals("normals/Normals.vtk",Part,npsave,Npb,Posc,Idpc,BoundNormalc,1.f);
   //-Save extra data.
   if(SvExtraDataBi4)SaveExtraData();

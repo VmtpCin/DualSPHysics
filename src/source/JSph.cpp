@@ -2708,6 +2708,7 @@ void JSph::SavePartData(unsigned npok,unsigned nout,const JDataArrays& arrays
       const tfloat3  *vel =arrays.GetArrayFloat3 ("Vel");
       const float    *rhop=arrays.GetArrayFloat  ("Rhop");
       const double    *Temp=arrays.GetArrayDouble  ("Temp");
+      const double    *LeonardJones=arrays.GetArrayDouble  ("LeonardJones"); // LJLJLJLJ
       if(SvPosDouble || (SvExtraDataBi4 && SvExtraDataBi4->CheckSave(Part))){
         DataBi4->AddPartData(npok,idp,pos,vel,rhop);
       }
@@ -2717,7 +2718,8 @@ void JSph::SavePartData(unsigned npok,unsigned nout,const JDataArrays& arrays
       }
 
       if (Temp)DataBi4->AddPartData("Temp", npok, Temp);  // [Temperature]: add temperature data.
-      
+      if (LeonardJones)DataBi4->AddPartData("LeonardJones", npok, LeonardJones);
+
       //-Adds other arrays.
       const string arrignore=":Pos:Idp:Vel:Rhop:";
       for(unsigned ca=0;ca<arrays.Count();ca++){
