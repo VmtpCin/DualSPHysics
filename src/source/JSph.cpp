@@ -216,6 +216,7 @@ void JSph::InitVars(){
   c2 = 0; // LJLJLJ
   rij = 0; // LJLJLJ
   rc = 0; // LJLJLJ
+  LJfluid = 0; // LJLJLJ
 
   SvData=byte(SDAT_Binx)|byte(SDAT_Info);
   SvExtraParts="";
@@ -984,6 +985,7 @@ void JSph::LoadCaseConfig(const JSphCfgRun *cfg){
   MkInfo=new JSphMk();
   MkInfo->Config(&parts);
 
+  
   // Config of temperature parameters
   TiXmlNode* tempNode = xml.GetNode("case.execution.special.temperature", false);
   if (tempNode){
@@ -998,6 +1000,15 @@ void JSph::LoadCaseConfig(const JSphCfgRun *cfg){
     HeatCpFluid = xml.ReadElementFloat(tempFluidNode, "HeatCpFluid", "value");
     HeatKFluid = xml.ReadElementFloat(tempFluidNode, "HeatKFluid", "value");
     HeatTempFluid = xml.ReadElementFloat(tempFluidNode, "HeatTempFluid", "value");
+  }
+
+  TiXmlNode* ljNode = xml.GetNode("case.execution.special.lj", false); //LJLJLJ
+  if (ljNode){
+    LennardJonesForce = true; // LJLJLJ
+    c1 = xml.ReadElementFloat(ljNode, "c1", "value"); //LJLJLJ
+    c2 = xml.ReadElementFloat(ljNode, "c2", "value"); //LJLJLJ
+    rij = xml.ReadElementFloat(ljNode, "rij", "value"); //LJLJLJ
+    rc = xml.ReadElementFloat(ljNode, "rc", "value"); //LJLJLJ
   }
 
   //-Configuration of GaugeSystem.
@@ -1510,6 +1521,17 @@ void JSph::VisuConfig(){
 	  Log->Print(fun::VarStr("DensityBound", DensityBound));
   }
   // ------------------------------------------
+  // Lennard Jones LJLJLJ
+  Log->Print(fun::VarStr("LennardJonesForce", LennardJonesForce));
+  if (LennardJonesForce){
+    Log->Print(fun::VarStr("LJfluid", LJfluid));
+    Log->Print(fun::VarStr("c1", c1));
+    Log->Print(fun::VarStr("c2", c2));
+    Log->Print(fun::VarStr("rij", rij));
+    Log->Print(fun::VarStr("rc", rc));
+  }
+
+
   Log->Print(Simulate2D? "**2D-Simulation parameters:": "**3D-Simulation parameters:");
   Log->Print(fun::VarStr("CaseName",CaseName));
   ConfigInfo=CaseName;
