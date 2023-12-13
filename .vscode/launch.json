@@ -1,14 +1,30 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "bashdb",
+      "request": "launch",
+      "name": "Bash-Debug (simplest configuration)",
+      "program": "$/home/CIN/vmtp/Documents/DualSPHysics-master/examples/main/01_DamBreak/xCaseDambreakVal2D_linux64_CPU.sh"
+    },
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "cppdbg",
+      "request": "launch",
+      "args": [],
+      "stopAtEntry": false,
+      "externalConsole": false,
+      "cwd": "/home/vmtpcin/Documents/GitHub/DualSPHysics/src/source",
+      "program": "/home/vmtpcin/Documents/GitHub/DualSPHysics/src/source/build/Debug/outDebug",
+      "MIMode": "gdb",
+      "miDebuggerPath": "gdb",
+      "setupCommands": [
         {
-            "type": "bashdb",
-            "request": "launch",
-            "name": "Bash-Debug (simplest configuration)",
-            "program": "$/home/CIN/vmtp/Documents/DualSPHysics-master/examples/main/01_DamBreak/xCaseDambreakVal2D_linux64_CPU.sh"
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
         }
-    ]
+      ]
+    }
+  ]
 }
