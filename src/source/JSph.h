@@ -161,6 +161,12 @@ protected:
   unsigned MkConstTempWall; ////< Mk of the constant temparature wall boundary
   // ------------------------------------------------------------------------
 
+  bool LennardJonesForce; // LJLJLJ
+  float c1; // LJLJLJ
+  float c2; // LJLJLJ
+  float rij; // LJLJLJ
+  float rc; // LJLJLJ
+
   const bool Cpu;
   const bool Mgpu;
   const bool WithMpi;

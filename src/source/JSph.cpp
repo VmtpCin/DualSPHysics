@@ -211,6 +211,12 @@ void JSph::InitVars(){
   DensityBound = 0;
   // ------------------------------
 
+  LennardJonesForce = false; // LJLJLJ
+  c1 = 0; // LJLJLJ
+  c2 = 0; // LJLJLJ
+  rij = 0; // LJLJLJ
+  rc = 0; // LJLJLJ
+
   SvData=byte(SDAT_Binx)|byte(SDAT_Info);
   SvExtraParts="";
   SvRes=false;
