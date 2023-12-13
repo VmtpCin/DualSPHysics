@@ -40,6 +40,13 @@
     </casedef>
     <execution>
 		<special>
+			<lj>
+				<c1 value="1"/>
+				<c2 value="1"/>
+				<rc value="1"/>
+				<rij value="1"/>
+			</lj>
+			
 			<temperature>
 				<boundary mkbound="0">
 					<HeatKBound value="202.4" comment="Thermal conductivity of boundary particles (default 54 for carbon steel at 293K)" units_comment="W/(m*K)" />
@@ -53,6 +60,8 @@
 					<HeatTempFluid value="293" comment="Temperature of fluid particles" units_comment="K"/>
 				</fluid>
 			</temperature>
+			
+			
 		</special>	
         <parameters>
             <parameter key="PosDouble" value="1" comment="Precision in particle interaction 0:Simple, 1:Double, 2:Uses and saves double (default=0)" />			
