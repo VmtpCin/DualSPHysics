@@ -45,6 +45,7 @@
 				<c2 value="1"/>
 				<rc value="1"/>
 				<rij value="1"/>
+				<LJfluid value="0"/>
 			</lj>
 			
 			<temperature>

@@ -1009,6 +1009,7 @@ void JSph::LoadCaseConfig(const JSphCfgRun *cfg){
     c2 = xml.ReadElementFloat(ljNode, "c2", "value"); //LJLJLJ
     rij = xml.ReadElementFloat(ljNode, "rij", "value"); //LJLJLJ
     rc = xml.ReadElementFloat(ljNode, "rc", "value"); //LJLJLJ
+    LJfluid = xml.ReadElementFloat(ljNode, "LJfluid", "value"); //LJLJLJ
   }
 
   //-Configuration of GaugeSystem.
@@ -2636,13 +2637,14 @@ tfloat3* JSph::GetPointerDataFloat3(unsigned n,const tdouble3* v)const{
 /// Adds basic data arrays in object JDataArrays.
 //==============================================================================
 void JSph::AddBasicArrays(JDataArrays &arrays,unsigned np,const tdouble3 *pos
-  ,const unsigned *idp,const tfloat3 *vel,const float *rhop, double *temp)const
+  ,const unsigned *idp,const tfloat3 *vel,const float *rhop, double *temp, double *lennardjones)const
 {
   arrays.AddArray("Pos" ,np,pos);
   arrays.AddArray("Idp" ,np,idp);
   arrays.AddArray("Vel" ,np,vel);
   arrays.AddArray("Rhop",np,rhop);
   arrays.AddArray("Temp",np, temp);
+  arrays.AddArray("Lennardjones",np, lennardjones); // LJLJLJ
 }
 
 //==============================================================================
@@ -2705,6 +2707,7 @@ void JSph::SavePartData(unsigned npok,unsigned nout,const JDataArrays& arrays
       const tfloat3  *vel =arrays.GetArrayFloat3 ("Vel");
       const float    *rhop=arrays.GetArrayFloat  ("Rhop");
       const double    *Temp=arrays.GetArrayDouble  ("Temp");
+      const double *Lennardjones=arrays.GetArrayDouble  ("Lennardjones");
       if(SvPosDouble || (SvExtraDataBi4 && SvExtraDataBi4->CheckSave(Part))){
         DataBi4->AddPartData(npok,idp,pos,vel,rhop);
       }
@@ -2714,7 +2717,7 @@ void JSph::SavePartData(unsigned npok,unsigned nout,const JDataArrays& arrays
       }
 
       if (Temp)DataBi4->AddPartData("Temp", npok, Temp);  // [Temperature]: add temperature data.
-      
+      if (Lennardjones)DataBi4->AddPartData("Lennarjones", npok, Lennardjones); // LJLJLJ
       //-Adds other arrays.
       const string arrignore=":Pos:Idp:Vel:Rhop:";
       for(unsigned ca=0;ca<arrays.Count();ca++){

@@ -134,6 +134,10 @@ void JSphCpuSingle::ConfigDomain(){
   }
   //==================================================
 
+  for (unsigned p = 0; p<Np; p++){
+    Lennardjonesc[p] = LJfluid; // LJLJLJ
+  }
+
   //-Computes radius of floating bodies.
   if(CaseNfloat && PeriActive!=0 && !PartBegin)CalcFloatingRadius(Np,Posc,Idpc);
   //-Configures floating motion data storage with high frequency. //<vs_ftmottionsv>  
@@ -467,15 +471,18 @@ void JSphCpuSingle::RunCellDivide(bool updateperiodic){
   CellDivSingle->SortArray(Posc);
   CellDivSingle->SortArray(Velrhopc);
   CellDivSingle->SortArray(Tempc);
+  CellDivSingle->SortArray(Lennardjonesc); // LJLJLJ
   if(TStep==STEP_Verlet){
     CellDivSingle->SortArray(VelrhopM1c);
     CellDivSingle->SortArray(TempM1c);
+    CellDivSingle->SortArray(LennardjonesM1c); // LJLJLJ
   }
   else if(TStep==STEP_Symplectic && (PosPrec || VelrhopPrec)){//-In reality, this is only necessary in divide for corrector, not in predictor??? | En realidad solo es necesario en el divide del corrector, no en el predictor???
     if(!PosPrec || !VelrhopPrec)Run_Exceptioon("Symplectic data is invalid.") ;
     CellDivSingle->SortArray(PosPrec);
     CellDivSingle->SortArray(VelrhopPrec);
     CellDivSingle->SortArray(TempPrec);
+     CellDivSingle->SortArray(LennardjonesPrec); // LJLJLJ
   }
   if(TVisco==VISCO_LaminarSPS)CellDivSingle->SortArray(SpsTauc);
   if(UseNormals){
@@ -505,8 +512,9 @@ void JSphCpuSingle::RunCellDivide(bool updateperiodic){
     tfloat3* vel=ArraysCpu->ReserveFloat3();
     float* rhop=ArraysCpu->ReserveFloat();
     double* temp=ArraysCpu->ReserveDouble();
+    double* lennardjones=ArraysCpu->ReserveDouble(); // LJLJLJ
     typecode* code=ArraysCpu->ReserveTypeCode();
-    unsigned num=GetParticlesData(npfout,Np,false,idp,pos,vel,rhop, temp, code);
+    unsigned num=GetParticlesData(npfout,Np,false,idp,pos,vel,rhop, temp, lennardjones, code); //LJLJLJ
     AddParticlesOut(npfout,idp,pos,vel,rhop,code);
     ArraysCpu->Free(idp);
     ArraysCpu->Free(pos);
@@ -530,8 +538,9 @@ void JSphCpuSingle::AbortBoundOut(){
   tfloat3* vel=ArraysCpu->ReserveFloat3();
   float* rhop=ArraysCpu->ReserveFloat();
   double* temp=ArraysCpu->ReserveDouble();
+  double* lennardjones=ArraysCpu->ReserveDouble(); // LJLJLJ
   typecode* code=ArraysCpu->ReserveTypeCode();
-  GetParticlesData(nboundout,Np,false,idp,pos,vel,rhop, temp, code);
+  GetParticlesData(nboundout,Np,false,idp,pos,vel,rhop, temp, lennardjones, code); //LJLJLJ
   //-Shows excluded particles information and aborts execution.
   JSph::AbortBoundOut(Log,nboundout,idp,pos,vel,rhop,code);
 }
@@ -550,8 +559,8 @@ void JSphCpuSingle::Interaction_Forces(TpInterStep interstep){
   //-Interaction of Fluid-Fluid/Bound & Bound-Fluid (forces and DEM). | Interaccion Fluid-Fluid/Bound & Bound-Fluid (forces and DEM).
   const stinterparmsc parms=StInterparmsc(Np,Npb,NpbOk
     ,DivData,Dcellc
-    ,Posc,Velrhopc, Tempc, Idpc,Codec,Pressc,dengradcorr
-    ,Arc, Atempc, Acec,Deltac
+    ,Posc,Velrhopc, Tempc, Lennardjonesc, Idpc,Codec,Pressc,dengradcorr
+    ,Arc, Atempc, ALennardjonesc, Acec,Deltac
     ,ShiftingMode,ShiftPosfsc
     ,SpsTauc,SpsGradvelc
   );
@@ -1158,6 +1167,7 @@ void JSphCpuSingle::SaveData(){
   tfloat3 *vel=NULL;
   float *rhop=NULL;
   double* temp=NULL;
+  double* lennardjones = NULL; // LJLJLJ
   if(save){
     //-Assign memory and collect particle values. | Asigna memoria y recupera datos de las particulas.
     idp=ArraysCpu->ReserveUint();
@@ -1165,7 +1175,8 @@ void JSphCpuSingle::SaveData(){
     vel=ArraysCpu->ReserveFloat3();
     rhop=ArraysCpu->ReserveFloat();
     temp=ArraysCpu->ReserveDouble();
-    unsigned npnormal=GetParticlesData(Np,0,PeriActive!=0,idp,pos,vel,rhop, temp, NULL);
+    lennardjones=ArraysCpu->ReserveDouble(); // LJLJLJ
+    unsigned npnormal=GetParticlesData(Np,0,PeriActive!=0,idp,pos,vel,rhop, temp, lennardjones, NULL);
     if(npnormal!=npsave)Run_Exceptioon("The number of particles is invalid.");
   }
   //-Gather additional information. | Reune informacion adicional.
@@ -1188,7 +1199,7 @@ void JSphCpuSingle::SaveData(){
   const tdouble3 vdom[2]={CellDivSingle->GetDomainLimits(true),CellDivSingle->GetDomainLimits(false)};
   //-Stores particle data. | Graba datos de particulas.
   JDataArrays arrays;
-  AddBasicArrays(arrays,npsave,pos,idp,vel,rhop, temp);
+  AddBasicArrays(arrays,npsave,pos,idp,vel,rhop, temp, lennardjones); // LJLJLJ
   JSph::SaveData(npsave,arrays,1,vdom,&infoplus);
   //-Free auxiliary memory for particle data. | Libera memoria auxiliar para datos de particulas.
   ArraysCpu->Free(idp);
@@ -1196,6 +1207,7 @@ void JSphCpuSingle::SaveData(){
   ArraysCpu->Free(vel);
   ArraysCpu->Free(rhop);
   ArraysCpu->Free(temp);
+  ArraysCpu->Free(lennardjones); // LJLJLJ 
   if(UseNormals && SvNormals)SaveVtkNormals("normals/Normals.vtk",Part,npsave,Npb,Posc,Idpc,BoundNormalc,1.f);
   //-Save extra data.
   if(SvExtraDataBi4)SaveExtraData();

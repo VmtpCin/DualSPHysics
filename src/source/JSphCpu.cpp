@@ -103,6 +103,11 @@ void JSphCpu::InitVars(){
   Atempc = NULL;
   //==================================================
 
+  Lennardjonesc = NULL; //LJLJLJ
+  LennardjonesM1c = NULL; //LJLJLJ
+  LennardjonesPrec = NULL; //LJLJLJ
+  ALennardjonesc = NULL; // LJLJLJ
+
 
   FreeCpuMemoryParticles();
   FreeCpuMemoryFixed();
@@ -180,15 +185,20 @@ void JSphCpu::AllocCpuMemoryParticles(unsigned np,float over){
   ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // Atempc
   //========================================================
 
+  ArraysCpu->AddArrayCount(JArraysCpu::SIZE_8B, 2); // Lennardjonesc LJLJLJ
+  ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // ALennardjonesc LJLJLJ
+
   ArraysCpu->AddArrayCount(JArraysCpu::SIZE_24B,2); //-pos
   if(TStep==STEP_Verlet){
     ArraysCpu->AddArrayCount(JArraysCpu::SIZE_16B,1); //-velrhopm1
     ArraysCpu->AddArrayCount(JArraysCpu::SIZE_8B, 1); // [Temperature]: TempM1
+    ArraysCpu->AddArrayCount(JArraysCpu::SIZE_8B, 1); // LennardjonesM1c LJLJLJ
   }
   else if(TStep==STEP_Symplectic){
     ArraysCpu->AddArrayCount(JArraysCpu::SIZE_24B,1); //-pospre
     ArraysCpu->AddArrayCount(JArraysCpu::SIZE_16B,1); //-velrhoppre
     ArraysCpu->AddArrayCount(JArraysCpu::SIZE_8B, 1); // TempPrec
+    ArraysCpu->AddArrayCount(JArraysCpu::SIZE_8B, 1); // LennardjonesPrec LJLJLJ
   }
   if(TVisco==VISCO_LaminarSPS){     
     ArraysCpu->AddArrayCount(JArraysCpu::SIZE_24B,2); //-SpsTau,SpsGradvel
@@ -307,9 +317,11 @@ void JSphCpu::ReserveBasicArraysCpu(){
   Posc=ArraysCpu->ReserveDouble3();
   Velrhopc=ArraysCpu->ReserveFloat4();
   Tempc = ArraysCpu->ReserveDouble();
+  Lennardjonesc = ArraysCpu->ReserveDouble(); // LJLJLJ
   if(TStep==STEP_Verlet){
     VelrhopM1c=ArraysCpu->ReserveFloat4();
     TempM1c = ArraysCpu->ReserveDouble();
+    LennardjonesM1c = ArraysCpu->ReserveDouble(); // LJLJLJ
     }
   if(TVisco==VISCO_LaminarSPS)SpsTauc=ArraysCpu->ReserveSymatrix3f();
   if(UseNormals){
@@ -351,7 +363,7 @@ void JSphCpu::PrintAllocMemory(llong mcpu)const{
 /// - onlynormal: Solo se queda con las normales, elimina las particulas periodicas.
 //==============================================================================
 unsigned JSphCpu::GetParticlesData(unsigned n,unsigned pini,bool onlynormal
-  ,unsigned *idp,tdouble3 *pos,tfloat3 *vel,float *rhop, double *temp, typecode *code)
+  ,unsigned *idp,tdouble3 *pos,tfloat3 *vel,float *rhop, double *temp, double *lennardjones, typecode *code) // LJLJLJ
 {
   unsigned num=n;
   //-Copy selected values.
@@ -371,6 +383,7 @@ unsigned JSphCpu::GetParticlesData(unsigned n,unsigned pini,bool onlynormal
   }
 
   if(temp)memcpy(temp, Tempc + pini, sizeof(double)*n); ///< copy values from Tempc
+  if(lennardjones)memcpy(lennardjones, Tempc + pini, sizeof(double)*n); // LJLJLJ
 
   //-Eliminate non-normal particles (periodic & others). | Elimina particulas no normales (periodicas y otras).
   if(onlynormal){
@@ -390,6 +403,7 @@ unsigned JSphCpu::GetParticlesData(unsigned n,unsigned pini,bool onlynormal
         vel[pdel]  =vel[p];
         rhop[pdel] =rhop[p];
         temp[pdel] =temp[p];
+        lennardjones[pdel] =lennardjones[p]; // LJLJLJ
         code2[pdel]=code2[p];
       }
       if(!normal)ndel++;
@@ -451,6 +465,7 @@ void JSphCpu::InitRunCpu(){
   if(TStep==STEP_Verlet){
     memcpy(VelrhopM1c,Velrhopc,sizeof(tfloat4)*Np);
     memcpy(TempM1c,Tempc,sizeof(double)*Np); // Copy TempM1c and Temp
+    memcpy(LennardjonesM1c,Lennardjonesc,sizeof(double)*Np); // LJLJLJ
     }
   if(TVisco==VISCO_LaminarSPS)memset(SpsTauc,0,sizeof(tsymatrix3f)*Np);
   if(CaseNfloat)InitFloating();
@@ -469,6 +484,8 @@ void JSphCpu::PreInteractionVars_Forces(unsigned np,unsigned npb){
   memset(Acec,0,sizeof(tfloat3)*np);                                 //Acec[]=(0,0,0)
   if(SpsGradvelc)memset(SpsGradvelc+npb,0,sizeof(tsymatrix3f)*npf);  //SpsGradvelc[]=(0,0,0,0,0,0).
   memset(Atempc, 0, sizeof(float)*np); /// ######
+  memset(ALennardjonesc, 0, sizeof(float)*np); // LJLJLJ
+
 
   //-Select particles for shifting.
   if(ShiftPosfsc)Shifting->InitCpu(npf,npb,Posc,ShiftPosfsc);
@@ -496,6 +513,7 @@ void JSphCpu::PreInteraction_Forces(){
   Arc=ArraysCpu->ReserveFloat();
   Acec=ArraysCpu->ReserveFloat3();
   Atempc=ArraysCpu->ReserveFloat(); //< reserve memory for Atemp
+  ALennardjonesc=ArraysCpu->ReserveFloat(); // LJLJLJ
   if(DDTArray)Deltac=ArraysCpu->ReserveFloat();
   if(Shifting)ShiftPosfsc=ArraysCpu->ReserveFloat4();
   Pressc=ArraysCpu->ReserveFloat();
@@ -574,6 +592,7 @@ void JSphCpu::PosInteraction_Forces(){
   ArraysCpu->Free(Pressc);       Pressc=NULL;
   ArraysCpu->Free(SpsGradvelc);  SpsGradvelc=NULL;
   ArraysCpu->Free(Atempc);  Atempc=NULL; //######
+  ArraysCpu->Free(ALennardjonesc);  ALennardjonesc=NULL; // LJLJLJ
 }
 
 //==============================================================================
@@ -582,8 +601,8 @@ void JSphCpu::PosInteraction_Forces(){
 //==============================================================================
 template<TpKernel tker,TpFtMode ftmode> void JSphCpu::InteractionForcesBound
   (unsigned n,unsigned pinit,StDivDataCpu divdata,const unsigned *dcell
-  ,const tdouble3 *pos,const tfloat4 *velrhop, const double *temp, const typecode *code,const unsigned *idp
-  ,float &viscdt,float *ar, float *atemp)const
+  ,const tdouble3 *pos,const tfloat4 *velrhop, const double *temp, const double *lennardjones, const typecode *code,const unsigned *idp
+  ,float &viscdt,float *ar, float *atemp, float *alennardjones)const //LJLJLJ
 {
   //-Initialize viscth to calculate max viscdt with OpenMP. | Inicializa viscth para calcular visdt maximo con OpenMP.
   float viscth[OMP_MAXTHREADS*OMP_STRIDE];
@@ -596,9 +615,11 @@ template<TpKernel tker,TpFtMode ftmode> void JSphCpu::InteractionForcesBound
   for(int p1=int(pinit);p1<pfin;p1++){
     float visc=0,arp1=0;
     float atempp1 = 0; // ######
+    float alennardjoness1 = 0; // LJLJLJ
 
     //-Load data of particle p1. | Carga datos de particula p1.
     const double tempp1 = temp[p1];
+    const double lennardjoness1 = lennardjones[p1];
     const float rhopp1 = DensityBound;
     const tdouble3 posp1=pos[p1];
     const bool rsymp1=(Symmetry && posp1.y<=KernelSize); //<vs_syymmetry>
@@ -648,6 +669,8 @@ template<TpKernel tker,TpFtMode ftmode> void JSphCpu::InteractionForcesBound
 			        atempp1 += float(tempConst*dtemp*fac);
 			        //==================================================
 
+              alennardjoness1 += 1; // LJLJLJ
+
             {//-Viscosity.
               const float dot=drx*dvx + dry*dvy + drz*dvz;
               const float dot_rr2=dot/(rr2+Eta2);
@@ -682,9 +705,10 @@ template<TpKernel tker,TpFtMode ftmode,TpVisco tvisco,TpDensity tdensity,bool sh
   ,const tsymatrix3f* tau,tsymatrix3f* gradvel
   ,const tdouble3 *pos,const tfloat4 *velrhop
   ,const double *temp //  ######
+  ,const double *lennardjones //LJLJLJ
   ,const typecode *code,const unsigned *idp
   ,const float *press,const tfloat3 *dengradcorr
-  ,float &viscdt,float *ar, float *atemp, tfloat3 *ace, float *delta // ######
+  ,float &viscdt,float *ar, float *atemp, float *alennardjones, tfloat3 *ace, float *delta // LJLJLJ
   ,TpShifting shiftmode,tfloat4 *shiftposfs)const
 {
   //-Initialize viscth to calculate viscdt maximo con OpenMP. | Inicializa viscth para calcular visdt maximo con OpenMP.
@@ -698,6 +722,7 @@ template<TpKernel tker,TpFtMode ftmode,TpVisco tvisco,TpDensity tdensity,bool sh
   for(int p1=int(pinit);p1<pfin;p1++){
     float visc=0,arp1=0,deltap1=0;
     float atempp1 = 0; //######
+    float alennardjoness1 = 0; // LJLJLJ
     tfloat3 acep1=TFloat3(0);
     tsymatrix3f gradvelp1={0,0,0,0,0,0};
 
@@ -718,6 +743,7 @@ template<TpKernel tker,TpFtMode ftmode,TpVisco tvisco,TpDensity tdensity,bool sh
     const tfloat3 velp1=TFloat3(velrhop[p1].x,velrhop[p1].y,velrhop[p1].z);
     const float rhopp1=velrhop[p1].w;
     const double tempp1 = temp[p1]; //######
+    const double lennardjoness1 = lennardjones[p1]; // LJLJLJ
     const float pressp1=press[p1];
     const tsymatrix3f taup1=(tvisco==VISCO_Artificial? gradvelp1: tau[p1]);
     const bool rsymp1=(Symmetry && posp1.y<=KernelSize); //<vs_syymmetry>
@@ -803,6 +829,10 @@ template<TpKernel tker,TpFtMode ftmode,TpVisco tvisco,TpDensity tdensity,bool sh
 			      atempp1 += float(tempConst*dtemp*fac);
 			      }
 			    //==================================================
+
+          if (compute){
+            alennardjoness1 += 1; // LJLJLJ
+          }
           
           //-Shifting correction.
           if(shift && shiftposfsp1.x!=FLT_MAX){
@@ -869,6 +899,7 @@ template<TpKernel tker,TpFtMode ftmode,TpVisco tvisco,TpDensity tdensity,bool sh
       }
       ar[p1]+=arp1;
       atemp[p1] += atempp1;
+      alennardjones[p1] += alennardjoness1; // LJLJLJ
       ace[p1]=ace[p1]+acep1;
       const int th=omp_get_thread_num();
       if(visc>viscth[th*OMP_STRIDE])viscth[th*OMP_STRIDE]=visc;
@@ -1030,12 +1061,12 @@ template<TpKernel tker,TpFtMode ftmode,TpVisco tvisco,TpDensity tdensity,bool sh
   if(t.npf){
     //-Interaction Fluid-Fluid.
     InteractionForcesFluid<tker,ftmode,tvisco,tdensity,shift> (t.npf,t.npb,false,Visco                 
-      ,t.divdata,t.dcell,t.spstau,t.spsgradvel,t.pos,t.velrhop, t.temp, t.code,t.idp,t.press,t.dengradcorr
-      ,viscdt,t.ar, t.atemp, t.ace,t.delta,t.shiftmode,t.shiftposfs);
+      ,t.divdata,t.dcell,t.spstau,t.spsgradvel,t.pos,t.velrhop, t.temp, t.lennardjones, t.code,t.idp,t.press,t.dengradcorr
+      ,viscdt,t.ar, t.atemp, t.alennardjones, t.ace,t.delta,t.shiftmode,t.shiftposfs);
     //-Interaction Fluid-Bound.
     InteractionForcesFluid<tker,ftmode,tvisco,tdensity,shift> (t.npf,t.npb,true ,Visco*ViscoBoundFactor
-      ,t.divdata,t.dcell,t.spstau,t.spsgradvel,t.pos,t.velrhop, t.temp, t.code,t.idp,t.press,NULL
-      ,viscdt,t.ar,t.atemp, t.ace,t.delta,t.shiftmode,t.shiftposfs);
+      ,t.divdata,t.dcell,t.spstau,t.spsgradvel,t.pos,t.velrhop, t.temp, t.lennardjones, t.code,t.idp,t.press,NULL
+      ,viscdt,t.ar,t.atemp, t.alennardjones, t.ace,t.delta,t.shiftmode,t.shiftposfs);
 
     //-Interaction of DEM Floating-Bound & Floating-Floating. //(DEM)
     if(UseDEM)InteractionForcesDEM(CaseNfloat,t.divdata,t.dcell
@@ -1047,7 +1078,7 @@ template<TpKernel tker,TpFtMode ftmode,TpVisco tvisco,TpDensity tdensity,bool sh
   if(t.npbok){
     //-Interaction Bound-Fluid.
     InteractionForcesBound<tker,ftmode> (t.npbok,0,t.divdata,t.dcell
-      ,t.pos,t.velrhop, t.temp, t.code,t.idp,viscdt,t.ar, t.atemp);
+      ,t.pos,t.velrhop, t.temp, t.lennardjones, t.code,t.idp,viscdt,t.ar, t.atemp, t.alennardjones);
   }
   res.viscdt=viscdt;
 }
@@ -1364,8 +1395,8 @@ void JSphCpu::UpdatePos(tdouble3 rpos,double movx,double movy,double movz
 /// Calcula nuevos valores de posicion, velocidad y densidad para el fluido (usando Verlet).
 //==============================================================================
 void JSphCpu::ComputeVerletVarsFluid(bool shift,const tfloat3 *indirvel
-  ,const tfloat4 *velrhop1,const tfloat4 *velrhop2, const double *tempp2, double dt,double dt2
-  ,tdouble3 *pos,unsigned *dcell,typecode *code,tfloat4 *velrhopnew, double *tempnew)const
+  ,const tfloat4 *velrhop1,const tfloat4 *velrhop2, const double *tempp2, const double *lennardjoness2, double dt,double dt2 // LJLJLJ
+  ,tdouble3 *pos,unsigned *dcell,typecode *code,tfloat4 *velrhopnew, double *tempnew, double *lennardjonesnew)const //LJLJLJ
 {
   const double dt205=0.5*dt*dt;
   const tdouble3 gravity=ToTDouble3(Gravity);
@@ -1377,6 +1408,7 @@ void JSphCpu::ComputeVerletVarsFluid(bool shift,const tfloat3 *indirvel
     //-Calculate density. | Calcula densidad.
     const float rhopnew=float(double(velrhop2[p].w)+dt2*Arc[p]);
     tempnew[p] = tempp2[p]+dt2*Atempc[p];
+    lennardjonesnew[p] = lennardjoness2[p]+dt2*ALennardjonesc[p]; // LJLJLJ
     if(!WithFloating || CODE_IsFluid(code[p])){//-Fluid Particles.
       const tdouble3 acegr=ToTDouble3(Acec[p])+gravity; //-Adds gravity.
       //-Calculate displacement. | Calcula desplazamiento.
@@ -1430,7 +1462,7 @@ void JSphCpu::ComputeVerletVarsFluid(bool shift,const tfloat3 *indirvel
 /// Calcula nuevos valores de densidad y pone velocidad a cero para el contorno 
 /// (fixed+moving, no floating).
 //==============================================================================
-void JSphCpu::ComputeVelrhopBound(const tfloat4* velrhopold, const double* tempold, double armul,tfloat4* velrhopnew, double* tempnew)const{
+void JSphCpu::ComputeVelrhopBound(const tfloat4* velrhopold, const double* tempold, const double* lennardjonesold, double armul,tfloat4* velrhopnew, double* tempnew, double* lennardjonesnew)const{ // LJLJLJ
   const int npb=int(Npb);
   #ifdef OMP_USE
     #pragma omp parallel for schedule (static) if(npb>OMP_LIMIT_COMPUTESTEP)
@@ -1438,6 +1470,7 @@ void JSphCpu::ComputeVelrhopBound(const tfloat4* velrhopold, const double* tempo
   for(int p=0;p<npb;p++){
     const float rhopnew=float(double(velrhopold[p].w)+armul*Arc[p]);
     tempnew[p]=tempold[p]; //######
+    lennardjonesnew[p] = lennardjonesold[p]; // LJLJLJ
     velrhopnew[p]=TFloat4(0,0,0,(rhopnew<RhopZero? RhopZero: rhopnew));//-Avoid fluid particles being absorved by boundary ones. | Evita q las boundary absorvan a las fluidas.
   }
 }
@@ -1453,17 +1486,18 @@ void JSphCpu::ComputeVerlet(double dt){
   VerletStep++;
   if(VerletStep<VerletSteps){
     const double twodt=dt+dt;
-    ComputeVerletVarsFluid(shift,indirvel,Velrhopc,VelrhopM1c, Tempc, dt,twodt,Posc,Dcellc,Codec,VelrhopM1c, TempM1c);
-    ComputeVelrhopBound(VelrhopM1c, Tempc, twodt,VelrhopM1c, TempM1c);
+    ComputeVerletVarsFluid(shift,indirvel,Velrhopc,VelrhopM1c, Tempc, Lennardjonesc, dt,twodt,Posc,Dcellc,Codec,VelrhopM1c, TempM1c, LennardjonesM1c); // LJLJLJ
+    ComputeVelrhopBound(VelrhopM1c, Tempc, Lennardjonesc, dt,VelrhopM1c, TempM1c, LennardjonesM1c); // LJLJLJ
   }
   else{
-    ComputeVerletVarsFluid(shift,indirvel,Velrhopc,Velrhopc, Tempc, dt,dt,Posc,Dcellc,Codec,VelrhopM1c, TempM1c);
-    ComputeVelrhopBound(Velrhopc, Tempc, dt,VelrhopM1c, TempM1c);
+    ComputeVerletVarsFluid(shift,indirvel,Velrhopc,Velrhopc, Tempc, Lennardjonesc, dt,dt,Posc,Dcellc,Codec,VelrhopM1c, TempM1c, LennardjonesM1c); // LJLJLJ
+    ComputeVelrhopBound(Velrhopc, Tempc, Lennardjonesc, dt,VelrhopM1c, TempM1c, LennardjonesM1c); // LJLJLJ
     VerletStep=0;
   }
   //-New values are calculated en VelrhopM1c. | Los nuevos valores se calculan en VelrhopM1c.
   swap(Velrhopc,VelrhopM1c);     //-Swap Velrhopc & VelrhopM1c. | Intercambia Velrhopc y VelrhopM1c.
   swap(Tempc, TempM1c);
+  swap(Lennardjonesc, LennardjonesM1c); // LJLJLJ
   Timersc->TmStop(TMC_SuComputeStep);
 }
 
@@ -1484,10 +1518,12 @@ void JSphCpu::ComputeSymplecticPre(double dt){
   PosPrec=ArraysCpu->ReserveDouble3();
   VelrhopPrec=ArraysCpu->ReserveFloat4();
   TempPrec = ArraysCpu->ReserveDouble(); //######
+  LennardjonesPrec = ArraysCpu->ReserveDouble(); // LJLJLJ
   //-Change data to variables Pre to calculate new data. | Cambia datos a variables Pre para calcular nuevos datos.
   swap(PosPrec,Posc);         //Put value of Pos[] in PosPre[].         | Es decir... PosPre[] <= Pos[].
   swap(VelrhopPrec,Velrhopc); //Put value of Velrhop[] in VelrhopPre[]. | Es decir... VelrhopPre[] <= Velrhop[].
   swap(TempPrec, Tempc); //######
+  swap(LennardjonesPrec, Lennardjonesc); // LJLJLJ
 
   //-Calculate new density for boundary and copy velocity. | Calcula nueva densidad para el contorno y copia velocidad.
   #ifdef OMP_USE
@@ -1497,6 +1533,7 @@ void JSphCpu::ComputeSymplecticPre(double dt){
     const tfloat4 vr=VelrhopPrec[p];
     const float rhopnew=float(double(vr.w)+dt05*Arc[p]);
     Tempc[p] = TempPrec[p]; // ######
+    Lennardjonesc[p] = LennardjonesPrec[p]; // LJLJLJ
     Velrhopc[p]=TFloat4(vr.x,vr.y,vr.z,(rhopnew<RhopZero? RhopZero: rhopnew));//-Avoid fluid particles being absorbed by boundary ones. | Evita q las boundary absorvan a las fluidas.
   }
 
@@ -1511,6 +1548,7 @@ void JSphCpu::ComputeSymplecticPre(double dt){
     //-Calculate density.
     const float rhopnew=float(double(VelrhopPrec[p].w)+dt05*Arc[p]);
     Tempc[p]=TempPrec[p]+dt05*Atempc[p]; //######
+    Lennardjonesc[p]=LennardjonesPrec[p]+dt05*ALennardjonesc[p]; // LJLJLJ
 
     if(!WithFloating || CODE_IsFluid(rcode)){//-Fluid Particles.
       //-Calculate displacement. | Calcula desplazamiento.
@@ -1617,6 +1655,10 @@ void JSphCpu::ComputeSymplecticCorr(double dt){
     Tempc[p]=TempPrec[p]*(2.-epsilon_tdot)/(2.+epsilon_tdot);
     //==================================================
 
+    const double epsilon_tdot2=(-double(ALennardjonesc[p])/Lennardjonesc[p])*dt; // LJLJLJ
+    Lennardjonesc[p]=LennardjonesPrec[p]*(2.-epsilon_tdot2)/(2.+epsilon_tdot2); // LJLJLJ
+
+
     if(!WithFloating || CODE_IsFluid(rcode)){//-Fluid Particles.
       //-Calculate velocity & density. | Calcula velocidad y densidad.
       tfloat4 rvelrhopnew=TFloat4(
@@ -1685,6 +1727,7 @@ void JSphCpu::ComputeSymplecticCorr(double dt){
   ArraysCpu->Free(PosPrec);      PosPrec=NULL;
   ArraysCpu->Free(VelrhopPrec);  VelrhopPrec=NULL;
   ArraysCpu->Free(TempPrec);  TempPrec=NULL;
+  ArraysCpu->Free(LennardjonesPrec);  LennardjonesPrec=NULL; // LJLJLJ
   Timersc->TmStop(TMC_SuComputeStep);
 }
 
