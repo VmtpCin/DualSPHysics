@@ -64,7 +64,7 @@ fi
 if [ $option -eq 2 -o $option -eq 1 ]; then
 # Executes PartVTK to create VTK files with particles.
 export dirout2=${dirout}/particles
-${partvtk} -dirin ${diroutdata} -savevtk ${dirout2}/PartFluid -onlytype:-all,fluid -vars:+idp,+vel,+rhop,+press,+vor,+energy,+temp, +lennardjones
+${partvtk} -dirin ${diroutdata} -savevtk ${dirout2}/PartFluid -onlytype:-all,fluid -vars:+idp,+vel,+rhop,+press,+vor,+energy,+temp,+lennardjones
 if [ $? -ne 0 ] ; then fail; fi
 
 ${partvtk} -dirin ${diroutdata} -savevtk ${dirout2}/PartBound -onlytype:-all,bound -vars:-all -last:0

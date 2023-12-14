@@ -2644,7 +2644,7 @@ void JSph::AddBasicArrays(JDataArrays &arrays,unsigned np,const tdouble3 *pos
   arrays.AddArray("Vel" ,np,vel);
   arrays.AddArray("Rhop",np,rhop);
   arrays.AddArray("Temp",np, temp);
-  arrays.AddArray("Lennardjones",np, lennardjones); // LJLJLJ
+  arrays.AddArray("Lennardjones",np, lennardjones); //LJLJLJ
 }
 
 //==============================================================================
@@ -2717,7 +2717,7 @@ void JSph::SavePartData(unsigned npok,unsigned nout,const JDataArrays& arrays
       }
 
       if (Temp)DataBi4->AddPartData("Temp", npok, Temp);  // [Temperature]: add temperature data.
-      if (Lennardjones)DataBi4->AddPartData("Lennarjones", npok, Lennardjones); // LJLJLJ
+      if (Lennardjones)DataBi4->AddPartData("Lennardjones", npok, Lennardjones); // LJLJLJ
       //-Adds other arrays.
       const string arrignore=":Pos:Idp:Vel:Rhop:";
       for(unsigned ca=0;ca<arrays.Count();ca++){
