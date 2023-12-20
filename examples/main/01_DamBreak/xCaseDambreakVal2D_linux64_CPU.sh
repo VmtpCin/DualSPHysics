@@ -17,7 +17,7 @@ export diroutdata=${dirout}/data
 export dirbin=../../../bin/linux
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${dirbin}
 export gencase="${dirbin}/GenCase_linux64"
-export dualsphysicscpu="${dirbin}/DualSPHysics5.2CPU_linux64"
+export dualsphysicscpu="${dirbin}/DualSPHysics5.2CPU_linux64_debug"
 export dualsphysicsgpu="${dirbin}/DualSPHysics5.2_linux64"
 export boundaryvtk="${dirbin}/BoundaryVTK_linux64"
 export partvtk="${dirbin}/PartVTK_linux64"
@@ -56,7 +56,8 @@ ${gencase} ${name}_Def ${dirout}/${name} -save:all
 if [ $? -ne 0 ] ; then fail; fi
 
 # Executes DualSPHysics to simulate SPH method.
-${dualsphysicscpu} ${dirout}/${name} ${dirout} -dirdataout data -svres
+echo gdb --args ${dualsphysicscpu} ${dirout}/${name}
+gdb --args ${dualsphysicscpu} ${dirout}/${name}
 if [ $? -ne 0 ] ; then fail; fi
 
 fi
